@@ -32,6 +32,10 @@
       </logicalFolder>
       <itemPath>main.c</itemPath>
       <itemPath>system.c</itemPath>
+      <itemPath>LIS3DH.c</itemPath>
+      <itemPath>LIS3DH.h</itemPath>
+      <itemPath>i2c.c</itemPath>
+      <itemPath>i2c.h</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
