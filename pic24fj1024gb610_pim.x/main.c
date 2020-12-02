@@ -223,13 +223,20 @@ int main (void){
     printf( "Test");
     uint8_t result;
     I2C_init();
+    uint16_t axis;
+    int axis_s;
 
     LIS3DH_Setup();
     while(1){
+        axis = device_read_register(slv_SAD, REG_OUT_X_L);
+        delay(1);
         result = device_read_register(slv_SAD, REG_OUT_X_H);
-        printf("%d", result);
+        axis |= (result << 8);
+        axis_s = (int)axis;
+        
+        printf("%d", axis_s);
         delay(500);
-        printf("\f", result);
+        printf("\f");
 
     }
         
