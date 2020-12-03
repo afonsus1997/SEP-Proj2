@@ -31,5 +31,11 @@ void readAxis(uint8_t slave_addr, axis_t * axis){
     delay(1);
     temp_h = device_read_register(slave_addr, REG_OUT_Z_H);
     axis->z =  (float)(temp_l | (temp_h << 8))/15987;
- 
+    
+    if(axis->x < 0.02 && axis->x > -0.02)
+        axis->x = 0;
+    if(axis->y < 0.02 && axis->y > -0.02)
+        axis->y = 0;
+    if(axis->z < 0.02 && axis->z > -0.02)
+        axis->z = 0;
 }
