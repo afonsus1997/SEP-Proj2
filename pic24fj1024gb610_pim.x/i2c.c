@@ -1,300 +1,157 @@
 #include "i2c.h"
 
 
-//================I2C==========================
-
-void initI2C(void){
-    //P56 SDA I2C1 RA14
-    //P57 SCL I2C1 RA15
-    
-    LATAbits.LATA14 = 1;										//Start with bus in idle mode - both lines high
+void I2C_init()
+{
+	LATAbits.LATA14 = 1;		//Start with bus in idle mode - both lines high
 	LATAbits.LATA15 = 1;
+
+	ODCAbits.ODCA14 = 1;		//Open drain mode
 	ODCAbits.ODCA15 = 1;
-    ODCAbits.ODCA14 = 1;										//Open drain mode
-//Open drain mode
-	TRISAbits.TRISA15 = 0;									//SCL1 output
-	TRISAbits.TRISA14 = 0;									//SDA1 output
+
+	TRISAbits.TRISA14 = 0;      //SCL1 output (module PIN 57 RA14)
+	TRISAbits.TRISA15 = 0;      //SDA1 output (module PIN 56 RA15)
+    
+	//Set up I2C for 400KHz operation on I2C port 1 (pins 56,57) on module PIC24FJ1024GB610
+	//I2C1BRG = 18;	            //I2C1BRG = (Fcy/(Fscl*2)-2) = (16E6/(400E3*2)-2) = 18 (Fscl=400KHz)
+    I2C1BRG = 78;
+	//I2C1CONLbits.DISSLW = 0;	//Enable slew rate control for 400KHz operation
+    I2C1CONLbits.DISSLW = 1;
+	I2C1CONLbits.I2CEN = 1;     //Enable I2C
+}
+
+//------------------------------------------------------------------------------
+void delay(unsigned int nMilliseconds)
+{
+  #define CYCLES_PER_MS         25 /* Number of decrement-and-test cycles. */
+
+  unsigned long nCycles = nMilliseconds * CYCLES_PER_MS;
+  while (nCycles--);
+}
+
+//---------------Function Purpose: I2C_Start sends start bit sequence-----------
+void Start(void)
+{   
+    I2C1CONLbits.SEN = 1;		// Send start bit
+    while(!IFS1bits.MI2C1IF);	// Wait for it to complete
+    IFS1bits.MI2C1IF = 0;		// Clear the flag bit
+}
+
+//---------------Function Purpose: I2C_ReStart sends start bit sequence---------
+void ReStart(void)
+{
+  I2C1CONLbits.RSEN = 1;			// Send Restart bit
+  while(!IFS1bits.MI2C1IF);		// Wait for it to complete
+  IFS1bits.MI2C1IF = 0;			// Clear the flag bit
+}
+
+//---------------Function : I2C_Stop sends stop bit sequence--------------------
+void Stop(void)
+{
+  I2C1CONLbits.PEN = 1;             // Send stop bit
+  while(!IFS1bits.MI2C1IF);         // Wait for it to complete
+  IFS1bits.MI2C1IF = 0;             // Clear the flag bit
+}
+
+//---------------Function : I2C_Send_ACK sends ACK bit sequence-----------------
+void ACK(void)
+{
+  I2C1CONLbits.ACKDT = 0;			// 0 means ACK
+  I2C1CONLbits.ACKEN = 1;			// Send ACKDT value
+  while(!IFS1bits.MI2C1IF);		// Wait for it to complete
+  IFS1bits.MI2C1IF = 0;			// Clear the flag bit
+}
+
+//---------------Function : I2C_Send_NACK sends NACK bit sequence---------------
+void NACK(void)
+{
+  I2C1CONLbits.ACKDT = 1;			// 1 means NACK
+  I2C1CONLbits.ACKEN = 1;			// Send ACKDT value
+  while(!IFS1bits.MI2C1IF);		// Wait for it to complete
+  IFS1bits.MI2C1IF = 0;			// Clear the flag bit
+}
+
+//---------------Function Purpose: I2C_Write_Byte transfers one byte------------
+void I2C_TX(unsigned char Byte)
+{
+  //unsigned char _byte;
+  I2C1TRN = Byte;                   // Send Byte value
+//  while(!IFS1bits.MI2C1IF);         // Wait for it to complete
+  while(I2C1STATbits.TRSTAT);
+  IFS1bits.MI2C1IF = 0;             // Clear the flag bit
+
+  //return I2C1STATbits.ACKSTAT;      // Return ACK/NACK from slave
+}
+
+//----------------Function Purpose: I2C_Read_Byte reads one byte----------------
+unsigned char I2C_RX(void)
+{
+   I2C1CONLbits.RCEN = 1;			// Enable reception of 8 bits
+   while(!IFS1bits.MI2C1IF);		// Wait for it to complete
+   IFS1bits.MI2C1IF = 0;			// Clear the flag bit
+
+   return I2C1RCV;                  // Return received byte
+}
+
+//------------------------------------------------------------------------------
+void I2C_Wait()
+{
+    while ( (I2C1CONL & 0x001F) || (I2C1STAT & 0x0004) )
+    {
+        /*Do nothing*/
+    };
+}
+
+//------------------------------------------------------------------------------
+void device_write(int slave_addr , int send_data)
+{  
+  Start();
+//  I2C_Wait();
+  I2C_TX(slave_addr);
+  I2C_TX(send_data);
+  Stop();
+}
+
+//------------------------------------------------------------------------------
+uint8_t device_read(uint8_t slave_addr)
+//unsigned char device_read(unsigned char Byte)
+{
+  const int read = 1;
+  uint8_t result;
+  
+  Start();
+  I2C_Wait();
+  I2C_TX(slave_addr + read);       // 7 bit device addr + control bit( 1 = read )
+  result = I2C_RX();
+//  LATA = I2C_RX();
+  NACK();                           //Give NACK to stop reading
+  Stop();
+  
+  TRISA = 0;
+  return result;
+}
+
+uint8_t device_read_register(uint8_t slave_addr, uint8_t reg_addr){
+    uint8_t rcv;
+    ReStart();
+//    I2C_Wait();
+    I2C_TX(slave_addr);
+    I2C_TX(reg_addr);
+//    Start();
+    rcv = device_read(slave_addr);
+    
+    LATA = rcv;
+    
+    return rcv;
     
     
-	//I2C1CON = 0x1000;										//Set all bits to known state
-	I2C1CON1bits.I2CEN = 0;									//Disable until everything set up. Pins will be std IO.
-    I2C1BRG = 37;	
-	I2C1CON1bits.DISSLW = 0;									//Enable slew rate control for 400kHz operation
-	IFS1bits.MI2C1IF = 0;									//Clear I2C master int flag
-	I2C1CON1bits.I2CEN = 1;									//Enable I2C
-
 }
 
-int I2C1_M_BusReset()
-{
-	int i;
-
-	//Start with lines high - sets SCL high if not already there
-	LATAbits.LATA14 = 1;										//PORTGbits.RG2 = 1 is equivalent
-	LATAbits.LATA15 = 1;
-
-//	Delay10us(1);											//Need 5uS delay
-	if(PORTAbits.RA14 == 0)									//Read if line actually went high
-	{
-		return 1;											//SCL stuck low - is the pullup resistor loaded?
-	}
-	//SCL ok, toggle until SDA goes high.
-	i=10;
-	while(i>0)
-	{
-		if(PORTAbits.RA14 == 1)								//If SDA is high, then we are done
-		{
-			break;
-		}
-		LATAbits.LATA15 = 0;									//SCL low
-/*		Delay10us(1);		*/								
-		LATAbits.LATA15 = 1;									//SCL high
-//		Delay10us(1);										//Need 5uS delay
-		i--;
-	}
-	if((PORTG & 0x000C) != 0x000C)							//We are ok if SCL and SDA high
-	{
-		return 2;
-	}
-
-	LATAbits.LATA15 = 0;										//SDA LOW while SCL HIGH -> START
-//	Delay10us(1);											//Need 5uS delay
-	LATAbits.LATA15 = 1;										//SDA HIGH while SCL HIGH -> STOP
-//	Delay10us(1);											//Need 5uS delay
-	return 0;
+void device_write_register(uint8_t slave_addr, uint8_t reg_addr, uint8_t data){
+    Start();
+    I2C_Wait();
+    I2C_TX(slave_addr);
+    I2C_TX(reg_addr);
+    I2C_TX(data);
+    Stop();
 }
-
-
-void I2C1_M_ClearErrors()
-{
-	I2C1CON1bits.RCEN = 0;									//Cancel receive request
-	I2C1STATbits.IWCOL = 0;									//Clear write-collision flag
-	I2C1STATbits.BCL = 0;									//Clear bus-collision flag
-}
-
-int I2C1_M_RecoverBus()
-{
-	int status;
-//	//Level 1: reset the I2C hardware on our side
-//	I2C1CONbits.I2CEN = 0;
-//	Nop();
-//	I2C1CONbits.I2CEN = 1;
-
-	//Level 2: reset devices on I2C network
-	//Disable I2C so we can toggle pins
-	I2C1CON1bits.I2CEN = 0;
-	status = I2C1_M_BusReset();
-	if(status>0)
-	{//Fatal I2C error, nothing we can do about it
-		return 0xFFFF;
-	}
-	//That worked, bring I2C back online
-	I2C1CON1bits.I2CEN = 1;
-
-	return 0;
-}
-
-int I2C1_M_ReStart()
-{
-	int t;
-
-	I2C1CON1bits.RSEN = 1;									//Initiate restart condition
-	Nop();
-	if(I2C1STATbits.BCL)
-	{
-		return 0x8002;										//Will need to clear BCL!
-	}
-
-	t=0;//Timeout is processor speed dependent.  @(4*8Mhz=32Mhz;16MIPS), I expect <=40.
-	while(I2C1CON1bits.RSEN)									//HW cleared when complete
-	{
-		t++;
-		if(t>1000)
-		{
-			return 0x8001;
-		}
-	}//Tested: t=5
-	return 0;
-}
-
-int I2C1_M_SendByte(char cData)
-{
-	int t;
-
-	if(I2C1STATbits.TBF)									//Is there already a byte waiting to send?
-	{
-		return 0x8001;
-	}
-	I2C1TRN = cData;										//Send byte
-	//Transmission takes several clock cycles to complete.  As a result we won't see BCL error for a while.
-	t=0;//Timeout is processor speed dependent.  @(4*8Mhz=32Mhz;16MIPS) and 8 bits, I expect <=320.
-	while(I2C1STATbits.TRSTAT)								//HW cleared when TX complete
-	{
-		t++;
-		if(t>8000)
-		{//This is bad because TRSTAT will still be set
-			return 0x8002;
-		}
-	}//Testing: t=31
-
-	if(I2C1STATbits.BCL)
-	{
-		I2C1STATbits.BCL = 0;								//Clear error to regain control of I2C
-		return 0x8003;
-	}
-
-	//Done, now how did slave respond?
-	if(I2C1STATbits.ACKSTAT)								//1=NACK
-		return 1;											//  NACK
-	else
-		return 0;											//  ACK
-}
-
-int I2C1_M_Start()
-{
-	int t;
-
-	I2C1CON1bits.SEN = 1;									//Initiate Start condition
-	Nop();
-	if(I2C1STATbits.BCL)
-	{
-		I2C1CON1bits.SEN = 0;								//Cancel request (will still be set if we had previous BCL)
-		I2C1STATbits.BCL = 0;								//Clear error to regain control of I2C
-		return 0x8002;
-	}
-	if(I2C1STATbits.IWCOL)
-	{//Not sure how this happens but it occurred once, so trap here
-		I2C1CON1bits.SEN = 0;								//Clear just in case set
-		I2C1STATbits.IWCOL = 0;								//Clear error
-		return 0x8003;
-	}
-
-	t=0;//Timeout is processor speed dependent.  @(4*8Mhz=32Mhz;16MIPS), I expect <=40.
-	while(I2C1CON1bits.SEN)									//HW cleared when complete
-	{
-		t++;
-		if(t>1000)
-		{
-			return 0x8001;
-		}
-	}//Tested: t=3.  I2C1STATbits.S will be set indicating start bit detected.
-
-	//If a second start request is issued after first one, the I2C module will instead:
-	//generate a stop request, clear SEN, and flag BCL.  Test for BCL here.
-	if(I2C1STATbits.BCL)
-	{
-		I2C1STATbits.BCL = 0;								//Clear error to regain control of I2C
-		return 0x8002;
-	}
-
-	return 0;
-}
-
-int I2C1_M_Stop()
-{
-	int t;
-
-	I2C1CON1bits.PEN = 1;									//Initiate stop condition
-	Nop();
-	if(I2C1STATbits.BCL)
-	{
-		return 0x8002;											//Will need to clear BCL!
-	}
-
-	t=0;//Timeout is processor speed dependent.  @(4*8Mhz=16MIPS), I expect <=40.
-	while(I2C1CON1bits.PEN)									//HW cleared when complete
-	{
-		t++;
-		if(t>1000)
-		{
-			return 0x8001;
-		}
-	}//Tested: t=5
-	return 0;
-}
-
-int  I2C1_M_Poll(uint8_t DevAddr)
-{
-	int retval;
-	uint8_t SlaveAddr;
-
-	SlaveAddr = (DevAddr << 1) | 0;
-
-	if(IsI2C1BusDirty)
-	{
-		I2C1_M_ClearErrors();
-		if(I2C1_M_RecoverBus()==0)
-		{//Recovered
-			ClrI2C1BusDirty;
-		}
-		else
-		{
-			return 0x8002;
-		}
-	}
-
-	if(I2C1_M_Start() == 0)
-	{
-		retval = I2C1_M_SendByte((char)SlaveAddr);
-		if(I2C1_M_Stop() == 0)								//Even if we have an error sending, try to close I2C
-		{
-			if(retval == 0)
-			{
-				return 0;
-			}
-		}
-	}
-	//Get here then we had an error
-	SetI2C1BusDirty;										//Set error flag
-	return 0x8001;
-}
-
-void I2C1_M_Write(uint8_t DevAddr, uint8_t SubAddr, int ByteCnt, char *buffer)
-{
-	int i;
-	uint8_t SlaveAddr;
-
-	if(IsI2C1BusDirty)										//Ignore requests until Poll cmd is called to fix err.
-		return;
-
-	SlaveAddr = (DevAddr << 1) | 0;							//Device Address + Write bit
-
-	if(I2C1_M_Start() != 0)									//Start
-	{//Failed to open bus
-		SetI2C1BusDirty;
-		return;
-	}
-
-	if( I2C1_M_SendByte((char)SlaveAddr) != 0)				//Slave Addr
-	{
-		I2C1_M_Stop();
-		SetI2C1BusDirty;
-		return;
-	}
-
-	if( I2C1_M_SendByte((char)SubAddr) != 0)				//Sub Addr
-	{
-		I2C1_M_Stop();
-		SetI2C1BusDirty;
-		return;
-	}
-
-	for(i=0;i<ByteCnt;i++)									//Data
-	{
-		if( I2C1_M_SendByte(buffer[i]) != 0)
-		{//Error while writing byte.  Close connection and set error flag.
-			I2C1_M_Stop();
-			SetI2C1BusDirty;
-			return;
-		}
-	}
-
-	if(I2C1_M_Stop() != 0)
-	{//Failed to close bus
-		SetI2C1BusDirty;
-		return;
-	}
-	return;
-}
-
-//=====================END i2C=====================

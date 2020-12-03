@@ -8,6 +8,11 @@
 #ifndef LIS3DH_H
 #define	LIS3DH_H
 
+#include <stdlib.h>
+#include <stddef.h>
+#include <stdint.h>
+//#include "i2c.h"
+
 #ifdef	__cplusplus
 extern "C" {
 #endif
@@ -20,6 +25,17 @@ extern "C" {
 #endif
 
 #endif	/* LIS3DH_H */
+
+
+typedef struct axis_s {
+    int x;
+    int y;
+    int z;
+} axis_t;
+
+#define slv_SAD 0x30   //Slave address (SAD + Write)(0b00110000(30h)) 
+                                //Slave address (SAD + Read) (0b00110001(31h))
+//unsigned char slv_SUB = 0x0F;   //Register WHO_AM_I (0Fh) (00110011))
 
 #define I2C_ADDR 0b0011000
 
