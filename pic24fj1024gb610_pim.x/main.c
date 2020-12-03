@@ -43,38 +43,21 @@ int main (void){
     printf( "\f" );
     printf( "Test");
     
-    
     axis_t axis;
     
     LIS3DH_Setup();
     while(1){
         readAxis(slv_SAD, &axis);       
-        printf("%d     %d\n     %d", axis.x, axis.y, axis.z);
-        delay(500);
+        printf("X=%.2f  Y=%.2f\nZ=%.2f", axis.x, axis.y, axis.z);
+        delay(700);
         printf("\f");
-
     }
-        
-//    device_read_register(slv_SAD , slv_SUB);
-    
-  
-//  ReStart();
-//  
-//  device_write(slv_SAD , slv_SUB);
-//  
-//  device_read();
-//  delay(1000);
-//  
 //****************************TEST**********************************************
 /*    LED_D = [   3  , 4   , 5   , 6   , 7   , 8   , 9   , 10  ]
      PLED_D = [  17  , 38  , 58  , 59  , 60  , 61  , 91  , 92  ]
       PORTA = [  RA0 , RA1 , RA2 , RA3 , RA4 , RA5 , RA6 , RA7 ]  */
 //******************************************************************************  
   
-  while(1)
-  {
-
-  }
   
   //***********PRUEBA***************************************************
    //Envio de la dirección del esclavo y recepción del acknoledge

@@ -28,9 +28,9 @@ extern "C" {
 
 
 typedef struct axis_s {
-    int x;
-    int y;
-    int z;
+    float x;
+    float y;
+    float z;
 } axis_t;
 
 #define slv_SAD 0x30   //Slave address (SAD + Write)(0b00110000(30h)) 

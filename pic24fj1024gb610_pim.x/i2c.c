@@ -76,11 +76,8 @@ void I2C_TX(unsigned char Byte)
 {
   //unsigned char _byte;
   I2C1TRN = Byte;                   // Send Byte value
-//  while(!IFS1bits.MI2C1IF);         // Wait for it to complete
   while(I2C1STATbits.TRSTAT);
   IFS1bits.MI2C1IF = 0;             // Clear the flag bit
-
-  //return I2C1STATbits.ACKSTAT;      // Return ACK/NACK from slave
 }
 
 //----------------Function Purpose: I2C_Read_Byte reads one byte----------------
@@ -106,7 +103,6 @@ void I2C_Wait()
 void device_write(int slave_addr , int send_data)
 {  
   Start();
-//  I2C_Wait();
   I2C_TX(slave_addr);
   I2C_TX(send_data);
   Stop();
@@ -114,19 +110,15 @@ void device_write(int slave_addr , int send_data)
 
 //------------------------------------------------------------------------------
 uint8_t device_read(uint8_t slave_addr)
-//unsigned char device_read(unsigned char Byte)
 {
   const int read = 1;
   uint8_t result;
-  
   Start();
   I2C_Wait();
   I2C_TX(slave_addr + read);       // 7 bit device addr + control bit( 1 = read )
   result = I2C_RX();
-//  LATA = I2C_RX();
   NACK();                           //Give NACK to stop reading
   Stop();
-  
   TRISA = 0;
   return result;
 }
@@ -137,14 +129,10 @@ uint8_t device_read_register(uint8_t slave_addr, uint8_t reg_addr){
 //    I2C_Wait();
     I2C_TX(slave_addr);
     I2C_TX(reg_addr);
-//    Start();
     rcv = device_read(slave_addr);
-    
     LATA = rcv;
     
     return rcv;
-    
-    
 }
 
 void device_write_register(uint8_t slave_addr, uint8_t reg_addr, uint8_t data){
