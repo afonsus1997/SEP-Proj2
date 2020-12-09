@@ -4,14 +4,53 @@
 // Section: File Scope Variables and Functions
 // *****************************************************************************
 // *****************************************************************************
+
+#define ACCVALUETIME 5000
+#define ORIENTATIONTIME 5000
+#define DISPLAYREFRESHRATE 400
+
 extern void SYS_Initialize ( void ) ;
 static void BlinkAliveEventHandler( void );
 static void ScreenUpdateEventHandler( void );
+uint16_t getCurrentVSysTick();
+static void SysTickHandler (void);
+static void printAcc(void);
+
 
 static RTCC_DATETIME time;
 static RTCC_DATETIME lastTime = {0};
 static volatile bool toggleBlinkAlive = false;
 static volatile bool allowScreenUpdate = true;
+static volatile bool allowSysTick = true;
+long sysTick = 0;
+
+
+void mcu_idle(void)
+{
+    __asm__ __volatile__ ("pwrsav #1");
+}
+
+void mcu_sleep(void)
+{
+    __asm__ __volatile__ ("pwrsav #0");
+}
+
+void configureIoC () {
+ // Button S4 -> PORTD Pin 13
+ // Configure the Interrupt on Change (IoC) functionality for button S4
+    PADCONbits.IOCON = 1;       // Step1, enables the IoC functionality
+    TRISDbits.TRISD13 = 1;      // Step 2, sets the pin as digital inputs
+    //ANSDbits.ANSD13 = 0;      // This should be used if the pin had any analog functionality
+    IOCPDbits.IOCPD13 = 0;      // Step 3, disables rising egde interrupt
+    IOCNDbits.IOCND13 = 1;      // enables falling edge interrupt
+    IOCPUDbits.IOCPUD13 = 1;    // Step 4, enabling the internal pull-up resistor on the pin
+    IOCPDDbits.IOCPDD13 = 0;    // disabling the internal pull-down resistor
+    IOCFDbits.IOCFD13 = 0;      // Step 5, clear individual flag for IoC
+    IFS1bits.IOCIF = 0;         // clear overall interrupt flag for the IoC
+    IPC4bits.IOCIP = 1;         // Step 6, configure the IoC priority to value 1
+    IEC1bits.IOCIE = 1;         // Step 7, enable the IoC interrupt
+}
+
 
 // ****************************** I2C module *********************************************
 
@@ -33,6 +72,7 @@ int main (void){
     TIMER_SetConfiguration ( TIMER_CONFIGURATION_1MS );
     TIMER_RequestTick( &BlinkAliveEventHandler, 500 );
     TIMER_RequestTick( &ScreenUpdateEventHandler, 170 );
+    TIMER_RequestTick( &SysTickHandler, 1);
     
     time.bcdFormat = false;
     lastTime.bcdFormat = false;
@@ -40,18 +80,47 @@ int main (void){
     RTCC_Initialize( &time );
     memset(&lastTime,0,sizeof(lastTime)); 
     
+    configureIoC();
+    
     printf( "\f" );
     printf( "Test");
     
-    axis_t axis;
-    
+    uint16_t firstTick;
     LIS3DH_Setup();
     while(1){
-        readAxis(slv_SAD, &axis);       
-        printf("X=%.2f  Y=%.2f\nZ=%.2f", axis.x, axis.y, axis.z);
-        delay(700);
-        printf("\f");
+        firstTick = getCurrentVSysTick();
+        while(1){
+            if((getCurrentVSysTick() - firstTick) > ACCVALUETIME)
+                break;
+            else{
+                printAcc();
+                delay(DISPLAYREFRESHRATE);
+
+            }
+        }
+
+        firstTick = getCurrentVSysTick();
+        while(1){
+            if((getCurrentVSysTick() - firstTick) > ORIENTATIONTIME)
+                break;
+            else{
+                printf( "\f" );
+                printf( "Orientation:\n" );
+                printf( "Up" );
+                delay(DISPLAYREFRESHRATE);
+
+            }
+        }
+
+        printf( "\f" );
+        printf( "Sleeping..." );
+        mcu_sleep();
     }
+    
+    
+    
+    
+    
 //****************************TEST**********************************************
 /*    LED_D = [   3  , 4   , 5   , 6   , 7   , 8   , 9   , 10  ]
      PLED_D = [  17  , 38  , 58  , 59  , 60  , 61  , 91  , 92  ]
@@ -80,6 +149,9 @@ int main (void){
   
 }
 
+uint16_t getCurrentVSysTick(){
+    return sysTick;
+}
 
 static void BlinkAliveEventHandler(void)
 {    
@@ -88,5 +160,23 @@ static void BlinkAliveEventHandler(void)
 
 static void ScreenUpdateEventHandler(void)
 {
-    allowScreenUpdate = true;
+    allowScreenUpdate = false;
+}
+
+static void SysTickHandler (void){
+    sysTick++;
+}
+
+static void printAcc(void){
+    axis_t axis;
+    printf("\f");
+    readAxis(slv_SAD, &axis);
+    printf("X=%.2f  Y=%.2f\nZ=%.2f", axis.x, axis.y, axis.z);
+}
+
+
+void __attribute__((__interrupt__, auto_psv)) _IOCInterrupt( void )
+{
+    IFS1bits.IOCIF = 0;           // Clear overall interrupt flag for the IoC
+    //Idle();
 }
