@@ -302,3 +302,7 @@ typedef struct axis_s {
 #define I2C_INCREMENT 0x80
 
 static const unsigned long RECALIBRATION_MOVEMENT_DELAY = 100;
+
+
+//INT AXIS INTERRUPT THRESHOLDS
+#define INT_TSH_VALUE 64 //1sb=16mg, 64=1024mg

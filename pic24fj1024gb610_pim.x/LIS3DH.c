@@ -10,7 +10,15 @@ void LIS3DH_Setup(){
 }
 
 void LIS3DH_Interrupt_Setup(){
-    
+    //interrupt mode: OR, all axis
+    device_write_register(slv_SAD, REG_INT1_CFG, 0b00111111);
+    device_write_register(slv_SAD, REG_INT1_THS, INT_TSH_VALUE);
+    device_write_register(slv_SAD, REG_CTRL_REG3, 0b01000000); //enable interrupts
+}
+
+void LIS3DH_Clear_Interrupt(){
+    //used to clear the interrupt bit of the sensor
+    device_read_register(slv_SAD, REG_INT1_SRC);
 }
 
 void readAxis(uint8_t slave_addr, axis_t * axis){
