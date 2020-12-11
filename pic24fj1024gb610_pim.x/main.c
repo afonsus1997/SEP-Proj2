@@ -10,6 +10,7 @@
 #define DISPLAYREFRESHRATE 400
 
 extern void SYS_Initialize ( void ) ;
+extern void LIS3DH_Clear_Interrupt();
 static void BlinkAliveEventHandler( void );
 static void ScreenUpdateEventHandler( void );
 uint16_t getCurrentVSysTick();
@@ -36,16 +37,16 @@ void mcu_sleep(void)
 }
 
 void configureIoC () {
- // Button S4 -> PORTD Pin 13
+ // Button S4 -> PORTD Pin 13 =========== PIN RF2
  // Configure the Interrupt on Change (IoC) functionality for button S4
     PADCONbits.IOCON = 1;       // Step1, enables the IoC functionality
-    TRISDbits.TRISD13 = 1;      // Step 2, sets the pin as digital inputs
+    TRISFbits.TRISF2 = 1;      // Step 2, sets the pin as digital inputs
     //ANSDbits.ANSD13 = 0;      // This should be used if the pin had any analog functionality
-    IOCPDbits.IOCPD13 = 0;      // Step 3, disables rising egde interrupt
-    IOCNDbits.IOCND13 = 1;      // enables falling edge interrupt
-    IOCPUDbits.IOCPUD13 = 1;    // Step 4, enabling the internal pull-up resistor on the pin
-    IOCPDDbits.IOCPDD13 = 0;    // disabling the internal pull-down resistor
-    IOCFDbits.IOCFD13 = 0;      // Step 5, clear individual flag for IoC
+//    IOCPDbits.IOCPD13 = 0;      // Step 3, disables rising egde interrupt
+    IOCPFbits.IOCPF2 = 1;      // enables RISING edge interrupt
+//    IOCPUDbits.IOCPUD13 = 1;    // Step 4, enabling the internal pull-up resistor on the pin
+//    IOCPDDbits.IOCPDD13 = 0;    // disabling the internal pull-down resistor
+    IOCFFbits.IOCFF2 = 0;      // Step 5, clear individual flag for IoC
     IFS1bits.IOCIF = 0;         // clear overall interrupt flag for the IoC
     IPC4bits.IOCIP = 1;         // Step 6, configure the IoC priority to value 1
     IEC1bits.IOCIE = 1;         // Step 7, enable the IoC interrupt
@@ -88,6 +89,7 @@ int main (void){
     uint16_t firstTick;
     LIS3DH_Setup();
     while(1){
+        LIS3DH_Clear_Interrupt();
         firstTick = getCurrentVSysTick();
         while(1){
             if((getCurrentVSysTick() - firstTick) > ACCVALUETIME)
@@ -99,19 +101,19 @@ int main (void){
             }
         }
 
-        firstTick = getCurrentVSysTick();
-        while(1){
-            if((getCurrentVSysTick() - firstTick) > ORIENTATIONTIME)
-                break;
-            else{
-                printf( "\f" );
-                printf( "Orientation:\n" );
-                printf( "Up" );
-                delay(DISPLAYREFRESHRATE);
-
-            }
-        }
-
+//        firstTick = getCurrentVSysTick();
+//        while(1){
+//            if((getCurrentVSysTick() - firstTick) > ORIENTATIONTIME)
+//                break;
+//            else{
+//                printf( "\f" );
+//                printf( "Orientation:\n" );
+//                printf( "Up" );
+//                delay(DISPLAYREFRESHRATE);
+//
+//            }
+//        }
+//
         printf( "\f" );
         printf( "Sleeping..." );
         mcu_sleep();

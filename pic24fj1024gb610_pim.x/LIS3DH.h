@@ -305,4 +305,4 @@ static const unsigned long RECALIBRATION_MOVEMENT_DELAY = 100;
 
 
 //INT AXIS INTERRUPT THRESHOLDS
-#define INT_TSH_VALUE 64 //1sb=16mg, 64=1024mg
+#define INT_TSH_VALUE 0x10//64//64 //1sb=16mg, 64=1024mg

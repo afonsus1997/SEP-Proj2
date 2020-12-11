@@ -4,15 +4,20 @@
 void LIS3DH_Setup(){
     //high resolution mode/10hz
     I2C_init();
-    device_write_register(slv_SAD, REG_CTRL_REG1, (0b0010 << 4) | 0b111);
+    device_write_register(slv_SAD, REG_CTRL_REG1, (0b0010 << 4) | 0b111); //10hz
     device_write_register(slv_SAD, REG_CTRL_REG2, 0x00);
 //    device_write_register(slv_SAD, REG_CTRL_REG5, (1 << 6));
+    LIS3DH_Interrupt_Setup();
+    device_read_register(slv_SAD, REG_INT1_SRC);
 }
 
 void LIS3DH_Interrupt_Setup(){
     //interrupt mode: OR, all axis
-    device_write_register(slv_SAD, REG_INT1_CFG, 0b00111111);
+    device_write_register(slv_SAD, REG_INT1_CFG, 0b00000010); //0b00000011 - x+ and x- //0b00111111 - all axis
     device_write_register(slv_SAD, REG_INT1_THS, INT_TSH_VALUE);
+    device_write_register(slv_SAD, REG_INT1_DURATION, 0b00000000);
+    device_write_register(slv_SAD, REG_CTRL_REG5, 0b00001000); //enable latch interrupt     
+    
     device_write_register(slv_SAD, REG_CTRL_REG3, 0b01000000); //enable interrupts
 }
 
