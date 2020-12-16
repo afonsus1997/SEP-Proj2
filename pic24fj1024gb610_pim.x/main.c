@@ -90,16 +90,16 @@ int main (void){
     LIS3DH_Setup();
     while(1){
         LIS3DH_Clear_Interrupt();
-//        firstTick = getCurrentVSysTick();
-//        while(1){
-//            if((getCurrentVSysTick() - firstTick) > ACCVALUETIME)
-//                break;
-//            else{
-//                printAcc();
-//                delay(DISPLAYREFRESHRATE);
-//
-//            }
-//        }
+        firstTick = getCurrentVSysTick();
+        while(1){
+            if((getCurrentVSysTick() - firstTick) > ACCVALUETIME)
+                break;
+            else{
+                printAcc();
+                delay(DISPLAYREFRESHRATE);
+
+            }
+        }
 
         firstTick = getCurrentVSysTick();
         while(1){
@@ -112,10 +112,10 @@ int main (void){
 
             }
         }
-//
-//        printf( "\f" );
-//        printf( "Sleeping..." );
-//        mcu_sleep();
+
+        printf( "\f" );
+        printf( "Sleeping..." );
+        mcu_sleep();
     }
     
     

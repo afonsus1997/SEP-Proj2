@@ -13,7 +13,7 @@ void LIS3DH_Setup(){
 
 void LIS3DH_Interrupt_Setup(){
     //interrupt mode: OR, all axis
-    device_write_register(slv_SAD, REG_INT1_CFG, 0b00000010); //0b00000011 - x+ and x- //0b00111111 - all axis
+    device_write_register(slv_SAD, REG_INT1_CFG, 0b00000010); //0b00000011 - x+ 
     device_write_register(slv_SAD, REG_INT1_THS, INT_TSH_VALUE);
     device_write_register(slv_SAD, REG_INT1_DURATION, 0b00000000);
     device_write_register(slv_SAD, REG_CTRL_REG5, 0b00001000); //enable latch interrupt     
