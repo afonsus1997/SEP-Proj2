@@ -1,6 +1,8 @@
 
 #include "LIS3DH.h"
 
+#define ACC_BETA 0.001
+
 void LIS3DH_Setup(){
     //high resolution mode/10hz
     I2C_init();
@@ -35,7 +37,11 @@ float axisConversion(uint8_t byteMSB, uint8_t byteLSB){
 }
 
 void calculateOrientation(axis_t * axis, axis_orientation_t * axis_ori){
-    axis_ori->roll = (float)(atan2(axis->y, axis->z) * 180/M_PI);
+    
+    uint8_t sign = (axis->z < 0)  ? -1 : 1;
+    //axis_ori->roll = (float)(atan2(axis->y, axis->z) * 180/M_PI);
+    //this should be more precise but other method works too
+    axis_ori->roll = (float)(atan2(axis->y, sign*sqrt(pow(axis->z, 2) + ACC_BETA*pow(axis->x, 2))) * 180/M_PI);
     axis_ori->pitch = (float)(atan2(-axis->x, sqrt(pow(axis->y, 2) + pow(axis->z, 2))) * 180/M_PI);
 }
 
