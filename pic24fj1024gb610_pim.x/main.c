@@ -5,9 +5,9 @@
 // *****************************************************************************
 // *****************************************************************************
 
-#define ACCVALUETIME 5000
-#define ORIENTATIONTIME 5000
-#define DISPLAYREFRESHRATE 400
+#define ACCVALUETIME 10000
+#define ORIENTATIONTIME 10000
+#define DISPLAYREFRESHRATE 600
 
 extern void SYS_Initialize ( void ) ;
 extern void LIS3DH_Clear_Interrupt();
@@ -90,33 +90,32 @@ int main (void){
     LIS3DH_Setup();
     while(1){
         LIS3DH_Clear_Interrupt();
-        firstTick = getCurrentVSysTick();
-        while(1){
-            if((getCurrentVSysTick() - firstTick) > ACCVALUETIME)
-                break;
-            else{
-                printAcc();
-                delay(DISPLAYREFRESHRATE);
-
-            }
-        }
-
 //        firstTick = getCurrentVSysTick();
 //        while(1){
-//            if((getCurrentVSysTick() - firstTick) > ORIENTATIONTIME)
+//            if((getCurrentVSysTick() - firstTick) > ACCVALUETIME)
 //                break;
 //            else{
-//                printf( "\f" );
-//                printf( "Orientation:\n" );
-//                printf( "Up" );
+//                printAcc();
 //                delay(DISPLAYREFRESHRATE);
 //
 //            }
 //        }
+
+        firstTick = getCurrentVSysTick();
+        while(1){
+            if((getCurrentVSysTick() - firstTick) > ORIENTATIONTIME)
+                break;
+            else{
+                
+                printOri();
+                delay(DISPLAYREFRESHRATE);
+
+            }
+        }
 //
-        printf( "\f" );
-        printf( "Sleeping..." );
-        mcu_sleep();
+//        printf( "\f" );
+//        printf( "Sleeping..." );
+//        mcu_sleep();
     }
     
     
@@ -169,13 +168,29 @@ static void SysTickHandler (void){
     sysTick++;
 }
 
-static void printAcc(void){
+void printAcc(void){
     axis_t axis;
     printf("\f");
     readAxis(slv_SAD, &axis);
+    if(axis.x < 0.02 && axis.x > -0.02)
+        axis.x = 0;
+    if(axis.y < 0.02 && axis.y > -0.02)
+        axis.y = 0;
+    if(axis.z < 0.02 && axis.z > -0.02)
+        axis.z = 0;
     printf("X=%.2f  Y=%.2f\nZ=%.2f", axis.x, axis.y, axis.z);
 }
 
+void printOri(void){
+    axis_t axis;
+    axis_orientation_t axis_ori;
+    readAxis(slv_SAD, &axis);
+    calculateOrientation(&axis, &axis_ori);
+    printf("\f");
+    printf("Pitch=%.2f\nRoll=%.2f", axis_ori.pitch, axis_ori.roll);
+
+    
+}
 
 void __attribute__((__interrupt__, auto_psv)) _IOCInterrupt( void )
 {

@@ -26,29 +26,39 @@ void LIS3DH_Clear_Interrupt(){
     device_read_register(slv_SAD, REG_INT1_SRC);
 }
 
+float axisConversion(uint8_t byteMSB, uint8_t byteLSB){
+    uint16_t value = ( (uint16_t)(byteMSB) << 8 ) | (uint16_t)byteLSB; //assemple bytes
+    value >>= 6; //remove lsbs
+    int16_t s_value = (int16_t)(value^(0x1<<(10-1))); //zero the sign bit
+    s_value -= ((int16_t)(1)<<(10-1)); //subtract half of the range
+    return (float)s_value*4/1000;
+}
+
+void calculateOrientation(axis_t * axis, axis_orientation_t * axis_ori){
+    axis_ori->roll = (float)(atan2(axis->y, axis->z) * 180/M_PI);
+    axis_ori->pitch = (float)(atan2(-axis->x, sqrt(pow(axis->y, 2) + pow(axis->z, 2))) * 180/M_PI);
+}
+
 void readAxis(uint8_t slave_addr, axis_t * axis){
     uint8_t temp_h;
     uint8_t temp_l;
     temp_l = device_read_register(slave_addr, REG_OUT_X_L);
     delay(1);
     temp_h = device_read_register(slave_addr, REG_OUT_X_H);
-//    axis->x =  (temp_l | (temp_h << 8)) >> 4;
-    axis->x =  (float)(temp_l | (temp_h << 8))/15987;
+    axis->x =  axisConversion(temp_h, temp_l);
+//    axis->x =  (float)(temp_l | (temp_h << 8))/15987;
 
     temp_l = device_read_register(slave_addr, REG_OUT_Y_L);
     delay(1);
     temp_h = device_read_register(slave_addr, REG_OUT_Y_H);
-    axis->y =  (float)(temp_l | (temp_h << 8))/15987;
+    axis->y =  axisConversion(temp_h, temp_l);
+//    axis->y =  (float)(temp_l | (temp_h << 8))/15987;
     
     temp_l = device_read_register(slave_addr, REG_OUT_Z_L);
     delay(1);
     temp_h = device_read_register(slave_addr, REG_OUT_Z_H);
-    axis->z =  (float)(temp_l | (temp_h << 8))/15987;
+    axis->z =  axisConversion(temp_h, temp_l);
+//      axis->z =  (float)(temp_l | (temp_h << 8))/15987;
     
-    if(axis->x < 0.02 && axis->x > -0.02)
-        axis->x = 0;
-    if(axis->y < 0.02 && axis->y > -0.02)
-        axis->y = 0;
-    if(axis->z < 0.02 && axis->z > -0.02)
-        axis->z = 0;
+    
 }

@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <math.h>
 //#include "i2c.h"
 
 #ifdef	__cplusplus
@@ -31,7 +32,19 @@ typedef struct axis_s {
     float x;
     float y;
     float z;
+    
 } axis_t;
+
+typedef struct axis_orientation_s {
+    float pitch;
+    float roll;
+    float yaw;
+    
+} axis_orientation_t;
+
+#define M_PI acos(-1.0)
+
+
 
 #define slv_SAD 0x30   //Slave address (SAD + Write)(0b00110000(30h)) 
                                 //Slave address (SAD + Read) (0b00110001(31h))
