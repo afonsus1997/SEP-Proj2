@@ -18,7 +18,7 @@ void LIS3DH_Interrupt_Setup(){
     device_write_register(slv_SAD, REG_INT1_CFG, 0b00000010); //0b00000011 - x+ 
     device_write_register(slv_SAD, REG_INT1_THS, INT_TSH_VALUE);
     device_write_register(slv_SAD, REG_INT1_DURATION, 0b00000000);
-    device_write_register(slv_SAD, REG_CTRL_REG5, 0b00001000); //enable latch interrupt     
+//    device_write_register(slv_SAD, REG_CTRL_REG5, 0b00001000); //enable latch interrupt     
     
     device_write_register(slv_SAD, REG_CTRL_REG3, 0b01000000); //enable interrupts
 }

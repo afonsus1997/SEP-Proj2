@@ -7,7 +7,7 @@
 
 #define ACCVALUETIME 10000
 #define ORIENTATIONTIME 10000
-#define DISPLAYREFRESHRATE 600
+#define DISPLAYREFRESHRATE 250
 
 extern void SYS_Initialize ( void ) ;
 extern void LIS3DH_Clear_Interrupt();
@@ -89,7 +89,7 @@ int main (void){
     uint16_t firstTick;
     LIS3DH_Setup();
     while(1){
-        LIS3DH_Clear_Interrupt();
+        
         firstTick = getCurrentVSysTick();
         while(1){
             if((getCurrentVSysTick() - firstTick) > ACCVALUETIME)
@@ -116,6 +116,9 @@ int main (void){
         printf( "\f" );
         printf( "Sleeping..." );
         mcu_sleep();
+//        IFS1bits.INT1IF = 0;
+        configureIoC();
+        LIS3DH_Clear_Interrupt();
     }
     
     
